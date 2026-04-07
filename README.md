@@ -57,10 +57,7 @@ To run this project, you need:
 * requirements.txt file is included for environment completeness.  
 * VS Code. 
 
-## **4\. Step 1 — Install PortAudio (system library for PyAudio)**
-## Step 1 — Install PortAudio (system library for PyAudio)**
-## Step 1 — Install PortAudio (system library for PyAudio)
-
+## **Step 1 — Install PortAudio (system library for PyAudio)**
 
 **macOS**
 ```bash
@@ -75,7 +72,6 @@ wheel:
 pip install pipwin
 pipwin install pyaudio
 ```
-
 
 ### **Step 2 — Clone / download the project**
 
@@ -107,38 +103,57 @@ pip install -r requirements.txt
 > python3 -c "import pyaudio; print('PyAudio OK')"
 > ```
 
-### **Step 3: Connect Player 2 (O)**
+## **5\. Running the Application**
 
-Open a **third** terminal window. Run the client script again to start the second client.  
+### **Start the Server**
+On the machine that will act as the relay hub:
+
 ```bash
-python client.py  
-# Console output: "Connected. Waiting for opponent..."
-# Console output: "Match found! You are Player O."
+python3 server.py
 ```
 
-### **Step 4: Gameplay**
+To bind to a specific interface or use a non-default port:
 
-1. **Player X** will be prompted: Enter row and col (e.g., '1 1'):.  
-2. Type two numbers separated by a space (from 0 to 2\) and press Enter.  
-3. The server updates the board on both screens.  
-4. **Player O** takes their turn.  
-5. The connection naturally terminates when a win/draw is achieved.
+```bash
+python3 server.py --host 0.0.0.0 --port 9000
+```
 
-## **5\. Technical Protocol Details (JSON over TCP)**
+You should see:
+```
+12:00:00  [INFO]  Server listening on 0.0.0.0:9000  (UDP)
+12:00:00  [INFO]  Server ready. Press Ctrl+C to stop.
+```
 
-We designed a custom application-layer protocol for data exchange usin JSON over TCP:
+### **Connect Clients**
+On each client machine (can be the same machine as the server for testing):
 
-* **Message Format:** `{"type": <string>, "payload": <data>}`  
-* **Handshake Phase:** \* Client sends: `{"type": "CONNECT"}`  
-  * Server responds: `{"type": "WELCOME", "payload": "Player X"}`  
-* **Gameplay Phase:**  
-  * Client sends: `{"type": "MOVE", "row": 1, "col": 1}`  
-  * Server broadcasts: `{"type": "UPDATE", "board": [[...], [...], [...]], , "turn": "O", "status": "ongoing"}`
+```bash
+python3 client.py
+```
+
+A connection dialog will appear. Fill in:
+
+| Field | Value |
+|---|---|
+| **Server IP** | IP address of the machine running `server.py` |
+| **Port** | `9000` (or whatever you used with `--port`) |
+| **Callsign** | Your display name in the channel |
+
+Click **CONNECT**.
+
+### **Testing Locally (Two Clients on One Machine)**
+Open two terminal windows and run `python3 client.py` in each. Use
+`127.0.0.1` as the server IP. This lets you test the full PTT and chat flow
+without any additional hardware.
+
+### **Using PTT**
+- **Hold SPACE** (when the chat input is not focused) — or —
+- **Click and hold the TRANSMIT button**
+
+Release to stop transmitting. Other connected clients will hear you.
 
 
 ## **6\. Academic Integrity & References**
-
-<span style="color: purple;">***RUBRIC NOTE: List all references used and help you got. Below is an example.***</span>
 
 * **Code Origin:**  
   * The socket boilerplate was adapted from the course tutorial "TCP Echo Server". The core multithreaded game logic, protocol, and state management were written by the group.  
