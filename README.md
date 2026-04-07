@@ -1,6 +1,6 @@
-# **CMPT 371 A3 Socket Programming `Walkie-Talkie voice chat`**
+# **CMPT 371 A3 Socket Programming**
 
-# 📻 WalkiePy — Push-to-Talk Voice Chat
+# 📻 WalkiePy — `Walkie-Talkie Voice Chat`
 > A real-time push-to-talk (PTT) Walkie-Talkie voice chat application built
 > with Python's Socket API, PyAudio, and Tkinter.
 
