@@ -1,7 +1,32 @@
 """
-CMPT 371 A3: Walkie-Talkie voice chat (push-to-talk application)
-Architecture: PyAudio over UDP Protocol
-Reference: Claude used to help create the interface/frontend.
+=============================================================================
+  CMPT 371 A3: Walkie-Talkie Voice Chat (Push-to-Talk Application)
+  WalkiePy - Push-to-Talk Voice Chat Client
+=============================================================================
+  Architecture : UDP client connecting to a WalkiePy server
+  GUI          : Tkinter (built-in Python) — styled with a dark military/
+                 radio aesthetic using custom Canvas drawing and ttk styling.
+
+  Key design decisions
+  ─────────────────────
+  • UDP transport   - matches server; low-latency for real-time audio.
+  • PyAudio         cross-platform audio I/O (PortAudio backend).
+  • Threading       - audio capture and network I/O each run on daemon
+                     threads so the Tkinter event loop stays responsive.
+  • Push-to-Talk    - SPACE bar (held) OR the GUI button triggers transmission (TX).
+                     Releasing stops transmission and clears the floor.
+  • Heartbeat       - a lightweight UDP packet sent every 2 seconds keeps the
+                     server from timing out the connection.
+
+  Thread map
+  ──────────
+  Main thread          → Tkinter event loop
+  _receive_loop        → UDP socket recv; dispatches by packet type
+  _heartbeat_loop      → sends PKT_HEARTBEAT every 2 seconds
+  _audio_capture_loop  → reads from mic and sends PKT_AUDIO when PTT held
+  _audio_playback_loop → reads from playback queue and feeds PyAudio stream
+=============================================================================
+Reference: Claude used to help create the interface/frontend and clean up extensive comments.
 """
 
 import socket
@@ -14,8 +39,16 @@ import tkinter as tk
 from tkinter import messagebox
 from datetime import datetime
 
-import pyaudio
+# Graceful degradation if PyAudio missing
+try:
+    import pyaudio
+    AUDIO_AVAILABLE = True
+except ImportError:
+    AUDIO_AVAILABLE = False
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  Logging
+# ─────────────────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s  [%(levelname)s]  %(message)s",
@@ -23,6 +56,9 @@ logging.basicConfig(
 )
 log = logging.getLogger("WalkiePy-Client")
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  Protocol constants  (must mirror server.py exactly)
+# ─────────────────────────────────────────────────────────────────────────────
 PKT_REGISTER    = 0x01
 PKT_HEARTBEAT   = 0x02
 PKT_AUDIO       = 0x03
@@ -31,13 +67,20 @@ PKT_DISCONNECT  = 0x05
 PKT_CLIENT_LIST = 0x06
 PKT_TRANSMIT    = 0x07
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  Audio constants
+#  16 kHz, mono, 16-bit PCM is the sweet spot: good speech quality, low
+#  bandwidth (~32 KB/s uncompressed), and universally supported.
+# ─────────────────────────────────────────────────────────────────────────────
 AUDIO_RATE      = 16000   # samples per second
 AUDIO_CHANNELS  = 1       # mono
 AUDIO_FORMAT    = pyaudio.paInt16 if AUDIO_AVAILABLE else None
 CHUNK_SIZE      = 1024    # frames per buffer (~64 ms at 16 kHz)
 MAX_PACKET_SIZE = 65535
 
-
+# ─────────────────────────────────────────────────────────────────────────────
+#  Design Palette  (dark military-radio aesthetic)
+# ─────────────────────────────────────────────────────────────────────────────
 PALETTE = {
     "bg_dark":      "#0d0f0e",   # near-black background
     "bg_panel":     "#141a16",   # slightly lighter panel
@@ -54,10 +97,27 @@ PALETTE = {
 }
 
 
+# =============================================================================
+#  NetworkClient  –  handles all UDP socket I/O
+# =============================================================================
+
 class NetworkClient:
+    """
+    Manages the UDP socket connection to the WalkiePy server.
+    Separates all networking logic from the GUI layer.
+    """
+
     def __init__(self, server_host: str, server_port: int, username: str,
                  on_audio, on_chat, on_client_list, on_transmit, on_error):
-
+        """
+        Parameters
+        ──────────
+        on_audio       : callable(sender: str, pcm_data: bytes)
+        on_chat        : callable(sender: str, msg: str, timestamp: str)
+        on_client_list : callable(names: list[str])
+        on_transmit    : callable(username: str)
+        on_error       : callable(message: str)
+        """
         self.server_addr = (server_host, server_port)
         self.username    = username
 
@@ -72,6 +132,7 @@ class NetworkClient:
         self.running = False
 
     def connect(self):
+        """Open the UDP socket and register with the server."""
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # Non-blocking recv with a 1-second timeout so the loop can check
         # the self.running flag periodically
@@ -88,6 +149,7 @@ class NetworkClient:
         threading.Thread(target=self._heartbeat_loop,  daemon=True).start()
 
     def disconnect(self):
+        """Send a graceful disconnect and close the socket."""
         if self.sock and self.running:
             try:
                 self.sock.sendto(bytes([PKT_DISCONNECT]), self.server_addr)
@@ -97,7 +159,12 @@ class NetworkClient:
         if self.sock:
             self.sock.close()
 
+    # ──────────────────────────────────────────────────────────────────────
+    #  Send helpers
+    # ──────────────────────────────────────────────────────────────────────
+
     def send_audio(self, pcm_data: bytes):
+        """Transmit a raw PCM chunk to the server (push-to-talk)."""
         if self.sock and self.running:
             packet = bytes([PKT_AUDIO]) + pcm_data
             try:
@@ -106,6 +173,7 @@ class NetworkClient:
                 log.warning(f"Audio send error: {e}")
 
     def send_chat(self, message: str):
+        """Send a text chat message to the server."""
         if self.sock and self.running:
             payload = json.dumps({"msg": message}).encode("utf-8")
             packet  = bytes([PKT_CHAT]) + payload
@@ -114,8 +182,15 @@ class NetworkClient:
             except OSError as e:
                 log.warning(f"Chat send error: {e}")
 
+    # ──────────────────────────────────────────────────────────────────────
+    #  Background loops
+    # ──────────────────────────────────────────────────────────────────────
 
     def _receive_loop(self):
+        """
+        Continuously receive UDP packets and send off to the correct callback.
+        Handles the 1-second timeout gracefully to allow clean shutdown.
+        """
         while self.running:
             try:
                 data, _ = self.sock.recvfrom(MAX_PACKET_SIZE)
@@ -168,8 +243,23 @@ class NetworkClient:
                     break
 
 
+# =============================================================================
+#  AudioManager  –  microphone capture + speaker playback via PyAudio
+# =============================================================================
+
 class AudioManager:
+    """
+    Encapsulates all PyAudio interactions.
+    Capture and playback run on separate threads to avoid blocking each other.
+    """
+
     def __init__(self, on_capture: callable):
+        """
+        Parameters
+        ──────────
+        on_capture : called with raw PCM bytes each time a chunk is captured
+                     while PTT is active.
+        """
         if not AUDIO_AVAILABLE:
             return
 
@@ -183,6 +273,7 @@ class AudioManager:
         self._out_stream = None
 
     def start(self):
+        """Open PyAudio streams and launch background threads."""
         if not AUDIO_AVAILABLE:
             return
 
@@ -213,6 +304,7 @@ class AudioManager:
         log.info("Audio streams open.")
 
     def stop(self):
+        """Stop all audio I/O."""
         if not AUDIO_AVAILABLE:
             return
         self.running = False
@@ -228,13 +320,20 @@ class AudioManager:
         log.info("Audio streams closed.")
 
     def push_to_talk(self, active: bool):
+        """Called by the GUI when the PTT button/key is pressed or released."""
         self.ptt_active = active
 
     def enqueue_audio(self, pcm_data: bytes):
+        """Called by NetworkClient when incoming audio arrives."""
         if AUDIO_AVAILABLE:
             self.playback_queue.put(pcm_data)
 
     def _capture_loop(self):
+        """
+        Continuously read from the microphone.
+        Only forwards data to the network when PTT is active.
+        Silence (no PTT) is simply discarded to save bandwidth.
+        """
         while self.running:
             try:
                 chunk = self._in_stream.read(CHUNK_SIZE, exception_on_overflow=False)
@@ -244,6 +343,10 @@ class AudioManager:
                 self.on_capture(chunk)
 
     def _playback_loop(self):
+        """
+        Drain the playback queue and write chunks to the output stream.
+        Uses a short timeout so the loop can exit cleanly when stopped.
+        """
         while self.running:
             try:
                 chunk = self.playback_queue.get(timeout=0.5)
@@ -254,7 +357,25 @@ class AudioManager:
                 break
 
 
+# =============================================================================
+#  WalkieTalkieApp  –  Tkinter GUI
+# =============================================================================
+
 class WalkieTalkieApp(tk.Tk):
+    """
+    Main application window.
+
+    Layout (left → right):
+      ┌─────────────────────────────────────────────────────┐
+      │  Header bar - logo + username + connection status   │
+      ├──────────────────────┬──────────────────────────────┤
+      │  Users panel         │  Chat / log panel            │
+      │  (online list)       │  (scrolled messages)         │
+      ├──────────────────────┴──────────────────────────────┤
+      │  PTT button  (center, large)  +  chat input row     │
+      └─────────────────────────────────────────────────────┘
+    """
+
     def __init__(self):
         super().__init__()
 
@@ -278,12 +399,18 @@ class WalkieTalkieApp(tk.Tk):
         # Ask for connection details on startup
         self.after(200, self._show_connect_dialog)
 
+    # ──────────────────────────────────────────────────────────────────────
+    #  GUI Construction
+    # ──────────────────────────────────────────────────────────────────────
+
     def _build_gui(self):
+        """Assemble all widgets."""
         self._build_header()
         self._build_main_area()
         self._build_ptt_area()
 
     def _build_header(self):
+        """Top bar: app name, username badge, connection status dot."""
         header = tk.Frame(self, bg=PALETTE["bg_panel"], height=52)
         header.pack(fill="x", side="top")
         header.pack_propagate(False)
@@ -338,6 +465,7 @@ class WalkieTalkieApp(tk.Tk):
         ).pack(side="right")
 
     def _build_main_area(self):
+        """Two-column area: user list on left, chat log on right."""
         main = tk.Frame(self, bg=PALETTE["bg_dark"])
         main.pack(fill="both", expand=True, padx=0, pady=0)
 
@@ -429,6 +557,7 @@ class WalkieTalkieApp(tk.Tk):
         self._chat_box.tag_configure("body",      foreground=PALETTE["text_primary"])
 
     def _build_ptt_area(self):
+        """Bottom area: large PTT button + chat input field."""
         bottom = tk.Frame(self, bg=PALETTE["bg_panel"], height=100)
         bottom.pack(fill="x", side="bottom")
         bottom.pack_propagate(False)
@@ -488,7 +617,12 @@ class WalkieTalkieApp(tk.Tk):
             command=self._send_chat,
         ).pack(side="left", padx=(6, 0))
 
+    # ──────────────────────────────────────────────────────────────────────
+    #  Connection Dialog
+    # ──────────────────────────────────────────────────────────────────────
+
     def _show_connect_dialog(self):
+        """Modal dialog to collect server host, port, and username."""
         dialog = tk.Toplevel(self)
         dialog.title("Connect to Server")
         dialog.configure(bg=PALETTE["bg_dark"])
@@ -579,7 +713,12 @@ class WalkieTalkieApp(tk.Tk):
 
         dialog.bind("<Return>", lambda e: do_connect())
 
+    # ──────────────────────────────────────────────────────────────────────
+    #  Connection Logic
+    # ──────────────────────────────────────────────────────────────────────
+
     def _connect(self, host: str, port: int):
+        """Initialise network + audio, then connect to the server."""
         # Update header
         self._username_label.config(text=self.username, fg=PALETTE["text_primary"])
 
@@ -614,12 +753,18 @@ class WalkieTalkieApp(tk.Tk):
                 "Install PyAudio for voice: pip install pyaudio", "")
 
     def disconnect(self):
+        """Clean up audio and network on close."""
         if self.audio_manager:
             self.audio_manager.stop()
         if self.network_client:
             self.network_client.disconnect()
 
+    # ──────────────────────────────────────────────────────────────────────
+    #  PTT (Push-to-Talk)
+    # ──────────────────────────────────────────────────────────────────────
+
     def _ptt_press(self):
+        """Activate transmission: light up button, tell audio manager."""
         if not self.connected or self.ptt_held:
             return
         self.ptt_held = True
@@ -632,6 +777,7 @@ class WalkieTalkieApp(tk.Tk):
         log.debug("PTT ON")
 
     def _ptt_release(self):
+        """Release PTT."""
         if not self.ptt_held:
             return
         self.ptt_held = False
@@ -644,10 +790,16 @@ class WalkieTalkieApp(tk.Tk):
         log.debug("PTT OFF")
 
     def _bind_keys(self):
+        """Map SPACE to PTT and Escape to release."""
         self.bind("<KeyPress-space>",   lambda e: self._ptt_press()   if not isinstance(self.focus_get(), tk.Entry) else None)
         self.bind("<KeyRelease-space>", lambda e: self._ptt_release() if not isinstance(self.focus_get(), tk.Entry) else None)
 
+    # ──────────────────────────────────────────────────────────────────────
+    #  Chat
+    # ──────────────────────────────────────────────────────────────────────
+
     def _send_chat(self):
+        """Send the text in the chat input box."""
         if not self.connected:
             return
         text = self._chat_entry.get().strip()
@@ -657,6 +809,10 @@ class WalkieTalkieApp(tk.Tk):
         self.network_client.send_chat(text)
 
     def _append_chat(self, sender: str, message: str, timestamp: str):
+        """
+        Append a message to the chat log (thread-safe via after()).
+        Uses Tkinter text tags to colour-code system vs user messages.
+        """
         def _insert():
             self._chat_box.config(state="normal")
 
@@ -674,11 +830,17 @@ class WalkieTalkieApp(tk.Tk):
 
         self.after(0, _insert)
 
+    # ──────────────────────────────────────────────────────────────────────
+    #  Callbacks from NetworkClient
+    # ──────────────────────────────────────────────────────────────────────
+
     def _on_audio_received(self, sender: str, pcm_data: bytes):
+        """Route incoming PCM to the audio manager's playback queue."""
         if self.audio_manager:
             self.audio_manager.enqueue_audio(pcm_data)
 
     def _on_audio_captured(self, pcm_data: bytes):
+        """Called by AudioManager when mic data is ready; forward to network."""
         if self.network_client:
             self.network_client.send_audio(pcm_data)
 
@@ -686,6 +848,7 @@ class WalkieTalkieApp(tk.Tk):
         self._append_chat(sender, message, timestamp)
 
     def _on_client_list(self, names: list):
+        """Refresh the user list widget (must happen on main thread)."""
         def _update():
             self._users_listbox.delete(0, tk.END)
             for name in names:
@@ -694,6 +857,7 @@ class WalkieTalkieApp(tk.Tk):
         self.after(0, _update)
 
     def _on_transmit(self, username: str):
+        """Show/hide the 'X is transmitting' indicator."""
         def _update():
             if username == self.username:
                 self._tx_indicator.config(text="")
@@ -704,10 +868,19 @@ class WalkieTalkieApp(tk.Tk):
     def _on_error(self, message: str):
         self.after(0, lambda: messagebox.showerror("Connection Error", message))
 
+    # ──────────────────────────────────────────────────────────────────────
+    #  Window close
+    # ──────────────────────────────────────────────────────────────────────
+
     def on_close(self):
         """Called when the user closes the window."""
         self.disconnect()
         self.destroy()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Entry Point
+# ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     app = WalkieTalkieApp()
