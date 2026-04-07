@@ -17,13 +17,12 @@
 
 ## **1\. Project Overview & Description**
 
-----This project is a multiplayer Tic-Tac-Toe game built using Python's Socket API (TCP). It allows two distinct clients to connect to a central server, be matched into a game lobby, and play against each other in real-time. The server handles the game logic, board state validation, and win-condition checking, ensuring that clients cannot cheat by modifying their local game state.
+WalkiePy is a real-time push-to-talk (PTT) voice chat application built using Python's Socket API (UDP `SOCK_DGRAM`). It allows multiple clients to connect to a central relay server and join a shared audio channel, simulating the half-duplex behaviour of a physical walkie-talkie. A client holds the **TRANSMIT** button (or the **SPACE** key) to broadcast their microphone audio to all other connected clients in real time.
 
-Our project, WalkiePy, simulates a real walkie-talkie channel over a local network (or the internet). One user holds the **TRANSMIT** button (or presses **SPACE**) to
-speak; everyone else on the same server channel hears them in real time.
+The server handles client registration, audio relay, chat broadcast, and presence detection via heartbeats — ensuring that disconnected clients are automatically evicted without requiring any action from remaining participants.
 
 ## **Additional:** 
-The interface includes a live user list showing who is currently in the channel and a text chat panel for users to communicate in written messages, in addition to the voice chat.
+The Tkinter GUI includes a live user list, showing who is currently in the channel and a text chat panel for users to communicate in written messages, in addition to the voice chat.
 
 The project demonstrates core networking concepts:
 - **Socket programming** (UDP `SOCK_DGRAM`)
@@ -36,13 +35,39 @@ The project demonstrates core networking concepts:
 
 As required by the project specifications, we have identified and handled (or defined) the following limitations and potential issues within our application scope:
 
-* **Handling Multiple Clients Concurrently:** 
-  * <span style="color: green;">*Solution:*</span> We utilized Python's threading module. When two clients connect, they are popped from the matchmaking\_queue and assigned to an isolated game\_session daemon thread. This ensures concurrent games do not block the main server event listener.  
-  * <span style="color: red;">*Limitation:*</span> Thread creation is limited by system resources. An enterprise application would eventually need a thread pool or asynchronous I/O (like asyncio) to handle tens of thousands of connections.  
-* **TCP Stream Buffering:** 
-  * <span style="color: green;">*Solution:*</span> TCP is a continuous byte stream, meaning multiple JSON messages can be mashed together if sent rapidly. We implemented an application-layer fix by appending a newline \\n to all JSON payloads and splitting the buffer on the client/server side to process them atomically.  
-* **Input Validation & Security:** 
-  * <span style="color: red;">*Limitation:*</span> The client side uses a basic try/except ValueError to prevent crashes from bad user input (like typing letters instead of numbers). However, malicious users could still theoretically modify the client script to send invalid coordinates. Our server assumes well-formatted JSON integers in this basic implementation.
+### No Audio Compression
+**Issue:** Raw 16-bit PCM at 16 kHz = ~32 KB/s per transmitting client. On
+a local LAN this is fine; it may be noticeable over the internet.  
+**Solution path:** Integrate an opus codec (e.g. `opuslib`) to compress
+audio ~10× with no perceptible quality loss.
+
+### Single Transmitter (Half-Duplex)
+**Issue:** Like a real walkie-talkie, only one person transmits at a time (the server relays whoever sends first). If two clients transmit simultaneously, the server just broadcasts whichever packets arrive; the result at the receiver will be garbled.
+**Solution path:** Server-side audio mixing; detect simultaneous transmitters and merge streams before rebroadcasting.
+
+### No Encryption
+**Issue:** Audio packets are sent as raw PCM over the network. Anyone on the same network with a packet sniffer (e.g. Wireshark) can capture and replay voice data.  
+**Solution path:** Wrap the socket in DTLS (Datagram TLS), or encrypt each payload with a shared AES key before sending.
+
+### Server is a Single Point of Failure
+**Issue:** If the server crashes, all clients lose connectivity immediately.  
+**Solution path:** Add a reconnection loop in the client (exponential backoff), and consider a peer-to-peer fallback or a redundant server.
+
+### High-Latency / Packet-Loss Networks
+**Issue:** On congested networks, UDP packets can arrive out-of-order or be dropped frequently, causing choppy audio.  
+**Solution path:** Implement a jitter buffer in the client's playback path that reorders a small window of packets before rendering audio.
+
+### Scalability
+**Issue:** The server relays every audio packet to every other client. With N clients, each transmit causes N−1 sends. At large scale this becomes O(N) bandwidth per packet.  
+**Solution path:** Use IP multicast (UDP `setsockopt SO_IP_MULTICAST`) to let the network layer handle fan-out, reducing server send load to 1.
+
+### No Username Authentication
+**Issue:** Any client can register with any username, including impersonating another user.  
+**Solution path:** Implement a token/challenge handshake on registration, or a simple password for the channel.
+
+### Abrupt Client Disconnection
+**Issue:** If a client process is killed without sending `PKT_DISCONNECT`, the server won't know until the heartbeat timeout (8 seconds).  
+**Mitigation already in place:** The cleanup thread evicts clients after `HEARTBEAT_TIMEOUT` seconds of silence. This value is tunable in `server.py`.
 
 ## **3\. Video Demo**
 
@@ -146,7 +171,7 @@ Open two terminal windows and run `python3 client.py` in each. Use
 `127.0.0.1` as the server IP. This lets you test the full PTT and chat flow
 without any additional hardware.
 
-##$ **Using PTT**
+### **Using PTT**
 - **Hold SPACE** (when the chat input is not focused) — or —
 - **Click and hold the TRANSMIT button**
 
