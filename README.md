@@ -12,12 +12,25 @@
 
 | Name | Student ID | Email |
 | :---- | :---- | :---- |
-| Ramneet Bhangoo | 301565796 | jane.doe@university.edu |
+| Ramneet Bhangoo | 301565796 |  |
 | Kyana Sohangar | 301604899 | kyana_sohangar@sfu.ca |
 
 ## **1\. Project Overview & Description**
 
-This project is a multiplayer Tic-Tac-Toe game built using Python's Socket API (TCP). It allows two distinct clients to connect to a central server, be matched into a game lobby, and play against each other in real-time. The server handles the game logic, board state validation, and win-condition checking, ensuring that clients cannot cheat by modifying their local game state.
+----This project is a multiplayer Tic-Tac-Toe game built using Python's Socket API (TCP). It allows two distinct clients to connect to a central server, be matched into a game lobby, and play against each other in real-time. The server handles the game logic, board state validation, and win-condition checking, ensuring that clients cannot cheat by modifying their local game state.
+
+Our project, WalkiePy, simulates a real walkie-talkie channel over a local network (or the internet). One user holds the **TRANSMIT** button (or presses **SPACE**) to
+speak; everyone else on the same server channel hears them in real time.
+
+## **Additional:** 
+The interface includes a live user list showing who is currently in the channel and a text chat panel for users to communicate in written messages, in addition to the voice chat.
+
+The project demonstrates core networking concepts:
+- **Socket programming** (UDP `SOCK_DGRAM`)
+- **Client–server architecture** with a broadcast relay
+- **Concurrent threading** for audio I/O, network I/O, and GUI
+- **Custom binary protocol** over raw sockets
+- **Heartbeat-based presence detection**
 
 ## **2\. System Limitations & Edge Cases**
 
@@ -33,8 +46,7 @@ As required by the project specifications, we have identified and handled (or de
 
 ## **3\. Video Demo**
 
-<span style="color: purple;">***RUBRIC NOTE: Include a clickable link.***</span>  
-Our 2-minute video demonstration covering connection establishment, data exchange, real-time gameplay, and process termination can be viewed below:  
+Our 2-minute video demonstration covering connection establishment, data exchange, real-time voice chat, and process termination can be viewed below:  
 [**▶️ Watch Project Demo on YouTube**](https://www.youtube.com/watch?v=dQw4w9WgXcQ)
 
 ## **4\. Prerequisites (Fresh Environment)**
@@ -42,31 +54,58 @@ Our 2-minute video demonstration covering connection establishment, data exchang
 To run this project, you need:
 
 * **Python 3.10** or higher.  
-* No external pip installations are required (uses standard socket, threading, json, sys libraries).  
-* (Optional) VS Code or Terminal.
+* requirements.txt file is included for environment completeness.  
+* VS Code. 
 
-<span style="color: purple;">***RUBRIC NOTE: No external libraries are required. Therefore, a requirements.txt file is not strictly necessary for dependency installation, though one might be included for environment completeness.***</span>
-
-## **4\. Step-by-Step Run Guide**
-
-<span style="color: purple;">***RUBRIC NOTE: The grader must be able to copy-paste these commands.***</span>
+## **4\. Step 1 — Install PortAudio (system library for PyAudio)**
+## Step 1 — Install PortAudio (system library for PyAudio)**
+## Step 1 — Install PortAudio (system library for PyAudio)
 
 
-### **Step 1: Start the Server**
-
-Open your terminal and navigate to the project folder. The server binds to 127.0.0.1 on port 5050\.  
+**macOS**
 ```bash
-python server.py  
-# Console output: "[STARTING] Server is listening on 127.0.0.1:5050"
+brew install portaudio
 ```
 
-### **Step 2: Connect Player 1 (X)**
-
-Open a **new** terminal window (keep the server running). Run the client script to start the first client.  
+**Windows**  
+PyAudio wheels for Windows come bundled with PortAudio; the `pip install`
+in the next step is sufficient. If you encounter errors, install a prebuilt
+wheel:
 ```bash
-python client.py  
-# Console output: "Connected. Waiting for opponent..."
+pip install pipwin
+pipwin install pyaudio
 ```
+
+
+### **Step 2 — Clone / download the project**
+
+```bash
+git clone https://github.com/<your-username>/walkiepy.git
+cd walkiepy
+```
+
+Or unzip the downloaded archive and `cd` into it.
+
+### **Step 3 — Create a virtual environment (Optional)**
+
+Using a venv keeps dependencies isolated:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate     # macOS
+venv\Scripts\activate.bat    # Windows
+```
+
+### **Step 4 — Install Python dependencies**
+
+```bash
+pip install -r requirements.txt
+```
+
+> **Verify** that PyAudio installed correctly:
+> ```bash
+> python3 -c "import pyaudio; print('PyAudio OK')"
+> ```
 
 ### **Step 3: Connect Player 2 (O)**
 
