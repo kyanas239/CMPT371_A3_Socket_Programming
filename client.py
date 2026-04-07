@@ -26,7 +26,7 @@
   _audio_capture_loop  → reads from mic and sends PKT_AUDIO when PTT held
   _audio_playback_loop → reads from playback queue and feeds PyAudio stream
 =============================================================================
-Reference: Claude used to help create the interface/frontend and clean up extensive comments.
+Reference: Claude used to help create the interface/frontend and clean-up extensive comments.
 """
 
 import socket
@@ -98,7 +98,7 @@ PALETTE = {
 
 
 # =============================================================================
-#  NetworkClient  –  handles all UDP socket I/O
+#  NetworkClient  -  handles all UDP socket I/O
 # =============================================================================
 
 class NetworkClient:
@@ -244,7 +244,7 @@ class NetworkClient:
 
 
 # =============================================================================
-#  AudioManager  –  microphone capture + speaker playback via PyAudio
+#  AudioManager  -  microphone capture + speaker playback via PyAudio
 # =============================================================================
 
 class AudioManager:
@@ -358,7 +358,7 @@ class AudioManager:
 
 
 # =============================================================================
-#  WalkieTalkieApp  –  Tkinter GUI
+#  WalkieTalkieApp  -  Tkinter GUI
 # =============================================================================
 
 class WalkieTalkieApp(tk.Tk):
@@ -691,7 +691,7 @@ class WalkieTalkieApp(tk.Tk):
                 port = int(port_str)
                 assert 1 <= port <= 65535
             except (ValueError, AssertionError):
-                messagebox.showerror("Invalid port", "Port must be 1–65535.", parent=dialog)
+                messagebox.showerror("Invalid port", "Port must be 1-65535.", parent=dialog)
                 return
 
             self.username = name
