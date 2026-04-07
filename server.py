@@ -1,7 +1,21 @@
 """
-CMPT 371 A3: Walkie-Talkie voice chat (push-to-talk application)
-Architecture: PyAudio over UDP Protocol
-Reference: Claude used to help create the interface/frontend.
+=============================================================================
+  CMPT 371 A3: Walkie-Talkie Voice Chat (Push-to-Talk Application)
+  WalkiePy - Push-to-Talk Voice Chat Client
+=============================================================================
+  Architecture : Client-Server over UDP
+  Transport    : UDP (User Datagram Protocol)
+  Purpose      : Receives audio packets from a transmitting client and
+                 broadcasts them in real-time to all other connected clients.
+
+  Server responsibilities:
+    - Maintain a registry of connected clients (heartbeat-based).
+    - Receive audio packets from any transmitting client.
+    - Broadcast those packets to every other registered client.
+    - Broadcast text chat messages to all clients.
+    - Remove stale clients that stop sending heartbeats.
+=============================================================================
+Reference: Claude used to help create the interface/frontend and clean-up extensive comments.
 """
 
 import socket
@@ -11,6 +25,9 @@ import json
 import logging
 from datetime import datetime
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  Logging Configuration
+# ─────────────────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s  [%(levelname)s]  %(message)s",
@@ -18,6 +35,11 @@ logging.basicConfig(
 )
 log = logging.getLogger("WalkiePy-Server")
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  Protocol Constants
+#  All packets begin with a 1-byte TYPE header so the server/client can
+#  quickly route incoming data without parsing the full payload.
+# ─────────────────────────────────────────────────────────────────────────────
 PKT_REGISTER   = 0x01   # Client announces itself to the server
 PKT_HEARTBEAT  = 0x02   # Client keeps its slot alive (sent every ~2 s)
 PKT_AUDIO      = 0x03   # Raw PCM audio chunk
@@ -26,7 +48,7 @@ PKT_DISCONNECT = 0x05   # Graceful client shutdown
 PKT_CLIENT_LIST= 0x06   # Server → client: current user list
 PKT_TRANSMIT   = 0x07   # Server → client: who is currently transmitting
 
-# How many seconds of silence before we consider a client gone
+# How many seconds of silence before a client is considered gone
 HEARTBEAT_TIMEOUT = 8   # seconds
 
 # Maximum UDP payload size (safe below typical MTU of 1500 bytes)
@@ -34,7 +56,17 @@ MAX_PACKET_SIZE = 65535
 
 
 class WalkieTalkieServer:
-    def __init__(self, host: str = "0.0.0.0", port: int = 9000):
+    """
+    Central hub for all WalkiePy clients.
+
+    Thread model
+    ────────────
+    • Main thread          - spins up everything, then blocks on input()
+    • receive_loop thread  - single UDP recv() loop; dispatches by packet type
+    • cleanup_loop thread  - evicts clients that missed heartbeats
+    """
+
+    def __init__(self, host: str = "0.0.0.0", port: int = 9000): # Default host is local network (same machine)
         self.host = host
         self.port = port
 
@@ -52,7 +84,12 @@ class WalkieTalkieServer:
 
         self.running = False
 
+    # ──────────────────────────────────────────────────────────────────────
+    #  Lifecycle
+    # ──────────────────────────────────────────────────────────────────────
+
     def start(self):
+        """Start background threads and begin serving."""
         self.running = True
         log.info(f"Server listening on {self.host}:{self.port}  (UDP)")
 
@@ -72,11 +109,20 @@ class WalkieTalkieServer:
             self.stop()
 
     def stop(self):
+        """Gracefully shut down the server."""
         log.info("Shutting down server…")
         self.running = False
         self.sock.close()
 
+    # ──────────────────────────────────────────────────────────────────────
+    #  Receive Loop  (runs on its own thread)
+    # ──────────────────────────────────────────────────────────────────────
+
     def _receive_loop(self):
+        """
+        Continuously read from the UDP socket and dispatch each packet
+        to the appropriate handler based on its first byte (packet type).
+        """
         while self.running:
             try:
                 data, addr = self.sock.recvfrom(MAX_PACKET_SIZE)
@@ -104,7 +150,15 @@ class WalkieTalkieServer:
             elif pkt_type == PKT_DISCONNECT:
                 self._handle_disconnect(addr)
 
+    # ──────────────────────────────────────────────────────────────────────
+    #  Packet Handlers
+    # ──────────────────────────────────────────────────────────────────────
+
     def _handle_register(self, payload: bytes, addr: tuple):
+        """
+        Register a new client.
+        Payload format: UTF-8 encoded username string.
+        """
         username = payload.decode("utf-8", errors="replace").strip()
         if not username:
             username = f"User_{addr[1]}"
@@ -120,11 +174,18 @@ class WalkieTalkieServer:
         self._send_system_chat(f"{username} joined the channel.")
 
     def _handle_heartbeat(self, addr: tuple):
+        """Refresh the last-seen timestamp for a client."""
         with self.clients_lock:
             if addr in self.clients:
                 self.clients[addr]["last_seen"] = time.time()
 
     def _handle_audio(self, audio_data: bytes, sender_addr: tuple):
+        """
+        Relay raw PCM audio to every client except the sender.
+
+        Packet structure sent to listeners:
+          [PKT_AUDIO (1 byte)] [username_len (1 byte)] [username] [raw PCM]
+        """
         with self.clients_lock:
             if sender_addr not in self.clients:
                 return
@@ -149,6 +210,11 @@ class WalkieTalkieServer:
                 log.warning(f"Could not send audio to {addr}: {e}")
 
     def _handle_chat(self, payload: bytes, sender_addr: tuple):
+        """
+        Broadcast a chat message to all connected clients.
+        Payload format: UTF-8 JSON → {"msg": "..."}
+        Forwarded packet: [PKT_CHAT] [JSON bytes]
+        """
         with self.clients_lock:
             if sender_addr not in self.clients:
                 return
@@ -182,6 +248,7 @@ class WalkieTalkieServer:
                 log.warning(f"Could not send chat to {addr}: {e}")
 
     def _handle_disconnect(self, addr: tuple):
+        """Remove a client that sent a graceful disconnect packet."""
         with self.clients_lock:
             info = self.clients.pop(addr, None)
 
@@ -193,7 +260,15 @@ class WalkieTalkieServer:
         if self.current_transmitter == addr:
             self.current_transmitter = None
 
+    # ──────────────────────────────────────────────────────────────────────
+    #  Broadcast Helpers
+    # ──────────────────────────────────────────────────────────────────────
+
     def _broadcast_client_list(self):
+        """
+        Push an updated user list to every client.
+        Packet: [PKT_CLIENT_LIST] [JSON: list of usernames]
+        """
         with self.clients_lock:
             names = [v["username"] for v in self.clients.values()]
             all_addrs = list(self.clients.keys())
@@ -208,6 +283,10 @@ class WalkieTalkieServer:
                 pass
 
     def _broadcast_transmitter(self, username: str):
+        """
+        Notify all clients who is currently transmitting.
+        Packet: [PKT_TRANSMIT] [UTF-8 username]
+        """
         packet = bytes([PKT_TRANSMIT]) + username.encode("utf-8")
         with self.clients_lock:
             all_addrs = list(self.clients.keys())
@@ -219,6 +298,7 @@ class WalkieTalkieServer:
                 pass
 
     def _send_system_chat(self, message: str):
+        """Broadcast a server-generated system message as a chat packet."""
         timestamp = datetime.now().strftime("%H:%M")
         envelope = json.dumps({
             "sender": "System",
@@ -236,7 +316,16 @@ class WalkieTalkieServer:
             except OSError:
                 pass
 
+    # ──────────────────────────────────────────────────────────────────────
+    #  Cleanup Loop  (runs on its own thread)
+    # ──────────────────────────────────────────────────────────────────────
+
     def _cleanup_loop(self):
+        """
+        Every 5 seconds, check all registered clients.
+        Any client whose last heartbeat is older than HEARTBEAT_TIMEOUT
+        is considered disconnected and removed from the registry.
+        """
         while self.running:
             time.sleep(5)
             now = time.time()
@@ -250,6 +339,11 @@ class WalkieTalkieServer:
             for addr, username in stale:
                 log.warning(f"⚠ TIMEOUT  {username}  ({addr[0]}:{addr[1]})")
                 self._handle_disconnect(addr)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Entry Point
+# ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     import argparse
