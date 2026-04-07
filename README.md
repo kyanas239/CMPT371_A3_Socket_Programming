@@ -57,7 +57,7 @@ To run this project, you need:
 * VS Code. 
 * requirements.txt file is included for environment completeness.  
 
-## **Step 1 — Install PortAudio (system library for PyAudio)**
+### **Step 1 — Install PortAudio (system library for PyAudio)**
 
 **macOS**
 ```bash
@@ -73,7 +73,7 @@ pip install pipwin
 pipwin install pyaudio
 ```
 
-## **Step 2 — Clone / download the project**
+### **Step 2 — Clone / download the project**
 
 ```bash
 git clone https://github.com/kyanas239/CMPT371_A3_Socket_Programming.git
@@ -82,7 +82,7 @@ cd CMPT371_A3_Socket_Programming
 
 Or unzip the downloaded archive and `cd` into it.
 
-## **Step 3 — Create a virtual environment (Optional)**
+### **Step 3 — Create a virtual environment (Optional)**
 
 Using a venv keeps dependencies isolated:
 
@@ -92,7 +92,7 @@ source venv/bin/activate     # macOS
 venv\Scripts\activate.bat    # Windows
 ```
 
-## **Step 4 — Install Python dependencies**
+### **Step 4 — Install Python dependencies**
 
 ```bash
 pip install -r requirements.txt
@@ -105,7 +105,7 @@ pip install -r requirements.txt
 
 ## **5\. Running the Application**
 
-## **Start the Server**
+### **Start the Server**
 On the machine that will act as the relay hub:
 
 ```bash
@@ -124,7 +124,7 @@ You should see:
 12:00:00  [INFO]  Server ready. Press Ctrl+C to stop.
 ```
 
-## **Connect Clients**
+### **Connect Clients**
 On each client machine (can be the same machine as the server for testing):
 
 ```bash
@@ -141,12 +141,12 @@ A connection dialog will appear. Fill in:
 
 Click **CONNECT**.
 
-## **Testing Locally (Two Clients on One Machine)**
+### **Testing Locally (Two Clients on One Machine)**
 Open two terminal windows and run `python3 client.py` in each. Use
 `127.0.0.1` as the server IP. This lets you test the full PTT and chat flow
 without any additional hardware.
 
-## **Using PTT**
+##$ **Using PTT**
 - **Hold SPACE** (when the chat input is not focused) — or —
 - **Click and hold the TRANSMIT button**
 
