@@ -12,8 +12,8 @@
 
 | Name | Student ID | Email |
 | :---- | :---- | :---- |
-| Jane Doe | 301111111 | jane.doe@university.edu |
-| John Smith | 301222222 | john.smith@university.edu |
+| Ramneet Bhangoo | 301565796 | jane.doe@university.edu |
+| Kyana Sohangar | 301604899 | kyana_sohangar@sfu.ca |
 
 ## **1\. Project Overview & Description**
 
