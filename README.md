@@ -54,8 +54,8 @@ Our 2-minute video demonstration covering connection establishment, data exchang
 To run this project, you need:
 
 * **Python 3.10** or higher.  
-* requirements.txt file is included for environment completeness.  
 * VS Code. 
+* requirements.txt file is included for environment completeness.  
 
 ## **Step 1 — Install PortAudio (system library for PyAudio)**
 
@@ -73,7 +73,7 @@ pip install pipwin
 pipwin install pyaudio
 ```
 
-### **Step 2 — Clone / download the project**
+## **Step 2 — Clone / download the project**
 
 ```bash
 git clone https://github.com/<your-username>/walkiepy.git
@@ -82,7 +82,7 @@ cd walkiepy
 
 Or unzip the downloaded archive and `cd` into it.
 
-### **Step 3 — Create a virtual environment (Optional)**
+## **Step 3 — Create a virtual environment (Optional)**
 
 Using a venv keeps dependencies isolated:
 
@@ -92,7 +92,7 @@ source venv/bin/activate     # macOS
 venv\Scripts\activate.bat    # Windows
 ```
 
-### **Step 4 — Install Python dependencies**
+## **Step 4 — Install Python dependencies**
 
 ```bash
 pip install -r requirements.txt
