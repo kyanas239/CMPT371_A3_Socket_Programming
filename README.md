@@ -36,28 +36,28 @@ The project demonstrates core networking concepts:
 As required by the project specifications, we have identified and handled (or defined) the following limitations and potential issues within our application scope:
 
 * **No Audio Compression**
-* *Limitation:* Raw 16-bit PCM at 16 kHz = ~32 KB/s per transmitting client. On a local LAN this is fine; it may be noticeable over the internet.  
-* *Solution:* Integrate an opus codec (e.g. `opuslib`) to compress audio ~10× with no perceptible quality loss.
+*Limitation:* Raw 16-bit PCM at 16 kHz = ~32 KB/s per transmitting client. On a local LAN this is fine; it may be noticeable over the internet.  
+*Solution:* Integrate an opus codec (e.g. `opuslib`) to compress audio ~10× with no perceptible quality loss.
 
 * **No Encryption**
-* *Limitation:* Audio packets are sent as raw PCM over the network. Anyone on the same network with a packet sniffer (e.g. Wireshark) can capture and replay voice data.  
-* *Solution:* Wrap the socket in DTLS (Datagram TLS), or encrypt each payload with a shared AES key before sending.
+*Limitation:* Audio packets are sent as raw PCM over the network. Anyone on the same network with a packet sniffer (e.g. Wireshark) can capture and replay voice data.  
+*Solution:* Wrap the socket in DTLS (Datagram TLS), or encrypt each payload with a shared AES key before sending.
 
 * **Server is a Single Point of Failure**
-* *Limitation:* If the server crashes, all clients lose connectivity immediately.  
-* *Solution:* Add a reconnection loop in the client (exponential backoff), and consider a peer-to-peer fallback or a redundant server.
+*Limitation:* If the server crashes, all clients lose connectivity immediately.  
+*Solution:* Add a reconnection loop in the client (exponential backoff), and consider a peer-to-peer fallback or a redundant server.
 
 * **Scalability**
-* *Limitation:* The server relays every audio packet to every other client. With N clients, each transmit causes N−1 sends. At large scale this becomes O(N) bandwidth per packet.  
-* *Solution:* Use IP multicast (UDP `setsockopt SO_IP_MULTICAST`) to let the network layer handle fan-out, reducing server send load to 1.
+*Limitation:* The server relays every audio packet to every other client. With N clients, each transmit causes N−1 sends. At large scale this becomes O(N) bandwidth per packet.  
+*Solution:* Use IP multicast (UDP `setsockopt SO_IP_MULTICAST`) to let the network layer handle fan-out, reducing server send load to 1.
 
 * **No Username Authentication**
-* *Limitation:* Any client can register with any username, including impersonating another user.  
-* *Solution:* Implement a token/challenge handshake on registration, or a simple password for the channel.
+*Limitation:* Any client can register with any username, including impersonating another user.  
+*Solution:* Implement a token/challenge handshake on registration, or a simple password for the channel.
 
 ### Abrupt Client Disconnection
-* *Limitation:* If a client process is killed without sending `PKT_DISCONNECT`, the server won't know until the heartbeat timeout (8 seconds).  
-* *Mitigation already in place:* The cleanup thread evicts clients after `HEARTBEAT_TIMEOUT` seconds of silence. This value is tunable in `server.py`.
+*Limitation:* If a client process is killed without sending `PKT_DISCONNECT`, the server won't know until the heartbeat timeout (8 seconds).  
+*Mitigation already in place:* The cleanup thread evicts clients after `HEARTBEAT_TIMEOUT` seconds of silence. This value is tunable in `server.py`.
 
 ## **3\. Video Demo**
 
