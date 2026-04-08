@@ -90,7 +90,7 @@ As required by the project specifications, we have identified and handled (or de
 ## **4\. Video Demo**
 
 Our 2-minute video demonstration covering connection establishment, data exchange, real-time voice chat, and process termination can be viewed below:  
-[**▶️ Watch Project Demo on YouTube**](https://www.youtube.com/watch?v=dQw4w9WgXcQ)
+[**▶️ Watch Project Demo on YouTube**](https://youtu.be/I7F3epYJgUU)
 
 ## **5\. Prerequisites (Fresh Environment)**
 
