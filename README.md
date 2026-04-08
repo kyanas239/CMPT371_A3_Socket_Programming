@@ -19,6 +19,8 @@
 
 WalkiePy is a real-time push-to-talk (PTT) voice chat application built using Python's Socket API (UDP `SOCK_DGRAM`). It allows multiple clients to connect to a central relay server and join a shared audio channel, simulating the half-duplex behaviour of a physical walkie-talkie. A client holds the **TRANSMIT** button (or the **SPACE** key) to broadcast their microphone audio to all other connected clients in real time.
 
+Each device acts as both a socket client (to send audio) and a socket server (to listen for incoming audio). This application initially seemed like a P2P architecture but in order for the users to find each other, we needed a central server for an initial connection and broadcast relay to perform initial handshake, register and keep track of available users on the particular IP and port.
+
 The server handles client registration, audio relay, chat broadcast, and presence detection via heartbeats — ensuring that disconnected clients are automatically evicted without requiring any action from remaining participants.
 
 ### **Why UDP?** 
