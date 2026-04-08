@@ -97,18 +97,18 @@ Our 2-minute video demonstration covering connection establishment, data exchang
 To run this project, you need:
 
 * **Python 3.10** or higher.
-* **PyAudio 0.2.14**
-* PortAudio (included in requirements.txt)
+* **PyAudio 0.2.14** (included in requirements.txt)
 * Tkinter (standard library)
 * VS Code. 
 * All clients and the server must be on the same network, **or** the server's UDP port must be forwarded through any NAT/firewall.
 * requirements.txt file is included for environment completeness.  
 
-### **Step 1 — Install PortAudio (system library for PyAudio)**
+### **Step 1 — Install PortAudio (system library for PyAudio) & standard Tkinter library if not found**
 
 **macOS**
 ```bash
 brew install portaudio
+brew install python-tk
 ```
 
 **Windows**  
