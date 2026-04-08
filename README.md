@@ -55,7 +55,7 @@ As required by the project specifications, we have identified and handled (or de
 *Limitation:* Any client can register with any username, including impersonating another user.  
 *Solution:* Implement a token/challenge handshake on registration, or a simple password for the channel.
 
-### Abrupt Client Disconnection
+* **Abrupt Client Disconnection**
 *Limitation:* If a client process is killed without sending `PKT_DISCONNECT`, the server won't know until the heartbeat timeout (8 seconds).  
 *Mitigation already in place:* The cleanup thread evicts clients after `HEARTBEAT_TIMEOUT` seconds of silence. This value is tunable in `server.py`.
 
