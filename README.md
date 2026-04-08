@@ -171,11 +171,13 @@ Release to stop transmitting. Other connected clients will hear you.
 ## **6\. Academic Integrity & References**
 
 * **Code Origin:**  
-  * The socket boilerplate was adapted from the course tutorial "TCP Echo Server". The core multithreaded game logic, protocol, and state management were written by the group.  
+  * The socket boilerplate was adapted from the course tutorial and the YouTube tutorials listed below for both audio transmission and UDP protocol in Python.  
 * **GenAI Usage:**  
-  * ChatGPT was used to assist in generating the Unicode box-drawing characters for the CLI interface, and to help structure the TCP buffer-splitting logic (`\n delimiter`).  
-  * Gemini was used to help in `README.md` writing and polishing.  
-  * GitHub Copilot was used to help plan the workflow of the application.   
+  * Claude was used to assist in generating the interface and front-end of the application based on our preferences of theme and functionality.  
+  * Claude was used to help in 'README.md' writing and polishing.
+  * Gemini was used to help plan the workflow of the application.
 * **References:**  
+  * [Simple Voice Chat in Python](https://youtu.be/ikJZIT4H6Bc?si=0jAHnrHIJ0Lj3Uje)
+  * [Simple UDP Chat Room in Python](https://youtu.be/IbzGL_tjmv4?si=AqjYtVYsW1-r04lD)
   * [Python Socket Programming HOWTO](https://docs.python.org/3/howto/sockets.html)  
   * [Real Python: Intro to Python Threading](https://realpython.com/intro-to-python-threading/)
