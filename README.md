@@ -12,7 +12,7 @@
 
 | Name | Student ID | Email |
 | :---- | :---- | :---- |
-| Ramneet Bhangoo | 301565796 |  |
+| Ramneet Bhangoo | 301565796 | rsb23@sfu.ca |
 | Kyana Sohangar | 301604899 | kyana_sohangar@sfu.ca |
 
 ---
