@@ -15,6 +15,16 @@
 | Ramneet Bhangoo | 301565796 |  |
 | Kyana Sohangar | 301604899 | kyana_sohangar@sfu.ca |
 
+## Table of Contents
+
+1. [Project Description](#project-overview--description)
+2. [Why UDP?](#why-udp)
+3. [System Limitations & Edge Cases](#known-limitations--discussion)
+4. [Video Demo](#requirements)
+7. [Installation Guide (Fresh Environment)](#installation-guide-fresh-environment)
+8. [Running the Application](#running-the-application)
+
+
 ## **1\. Project Overview & Description**
 
 WalkiePy is a real-time push-to-talk (PTT) voice chat application built using Python's Socket API (UDP `SOCK_DGRAM`). It allows multiple clients to connect to a central relay server and join a shared audio channel, simulating the half-duplex behaviour of a physical walkie-talkie. A client holds the **TRANSMIT** button (or the **SPACE** key) to broadcast their microphone audio to all other connected clients in real time.
@@ -22,10 +32,6 @@ WalkiePy is a real-time push-to-talk (PTT) voice chat application built using Py
 Each device acts as both a socket client (to send audio) and a socket server (to listen for incoming audio). This application initially seemed like a P2P architecture but in order for the users to find each other, we needed a central server for an initial connection and broadcast relay to perform initial handshake, register and keep track of available users on the particular IP and port.
 
 The server handles client registration, audio relay, chat broadcast, and presence detection via heartbeats — ensuring that disconnected clients are automatically evicted without requiring any action from remaining participants.
-
-### **Why UDP?** 
-For this voice data application, latency is more important than reliability: UDP is ideal for fast, real-time audio streaming, requiring low latency so it allows the application to ignore lost packets rather than waiting for retransmission.
-A dropped packet in this application is a missed 64 ms audio chunk; this would create a tiny crackle that the user barely notices. But TCP's forced retransmit would cause the entire audio stream to freeze until the lost packet is recovered. UDP also has no handshake overhead so it does not slow down the transmission process, unlike TCP. Therefore, UDP is the ideal protocol for this application
 
 ### **Additional:** 
 The Tkinter GUI includes a live user list, showing who is currently in the channel and a text chat panel for users to communicate in written messages, in addition to the voice chat.
@@ -37,7 +43,11 @@ The project demonstrates core networking concepts:
 - **Custom binary protocol** over raw sockets
 - **Heartbeat-based presence detection**
 
-## **2\. System Limitations & Edge Cases**
+## **2\. Why UDP?**
+For this voice data application, latency is more important than reliability: UDP is ideal for fast, real-time audio streaming, requiring low latency so it allows the application to ignore lost packets rather than waiting for retransmission.
+A dropped packet in this application is a missed 64 ms audio chunk; this would create a tiny crackle that the user barely notices. But TCP's forced retransmit would cause the entire audio stream to freeze until the lost packet is recovered. UDP also has no handshake overhead so it does not slow down the transmission process, unlike TCP. Therefore, UDP is the ideal protocol for this application
+
+## **3\. System Limitations & Edge Cases**
 
 As required by the project specifications, we have identified and handled (or defined) the following limitations and potential issues within our application scope:
 
@@ -65,12 +75,12 @@ As required by the project specifications, we have identified and handled (or de
 *Limitation:* If a client process is killed without sending `PKT_DISCONNECT`, the server won't know until the heartbeat timeout (8 seconds).  
 *Mitigation already in place:* The cleanup thread evicts clients after `HEARTBEAT_TIMEOUT` seconds of silence. This value is tunable in `server.py`.
 
-## **3\. Video Demo**
+## **4\. Video Demo**
 
 Our 2-minute video demonstration covering connection establishment, data exchange, real-time voice chat, and process termination can be viewed below:  
 [**▶️ Watch Project Demo on YouTube**](https://www.youtube.com/watch?v=dQw4w9WgXcQ)
 
-## **4\. Prerequisites (Fresh Environment)**
+## **5\. Prerequisites (Fresh Environment)**
 
 To run this project, you need:
 
@@ -124,7 +134,7 @@ pip install -r requirements.txt
 > python3 -c "import pyaudio; print('PyAudio OK')"
 > ```
 
-## **5\. Running the Application**
+## **6\. Running the Application**
 
 ### **Start the Server**
 On the machine that will act as the relay hub:
@@ -174,7 +184,7 @@ without any additional hardware.
 Release to stop transmitting. Other connected clients will hear you.
 
 
-## **6\. Academic Integrity & References**
+## **7\. Academic Integrity & References**
 
 * **Code Origin:**  
   * The socket boilerplate was adapted from the course tutorial and the YouTube tutorials listed below for both audio transmission and UDP protocol in Python.  
