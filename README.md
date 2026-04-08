@@ -79,6 +79,14 @@ As required by the project specifications, we have identified and handled (or de
 *Limitation:* If a client process is killed without sending `PKT_DISCONNECT`, the server won't know until the heartbeat timeout (8 seconds).  
 *Mitigation already in place:* The cleanup thread evicts clients after `HEARTBEAT_TIMEOUT` seconds of silence. This value is tunable in `server.py`.
 
+* **Troubleshooting: Clients getting error reaching the server**
+*Limitation:* If the clients and the server are not on the same network, extra steps are needed for configuration.
+*Solution:* The server's UDP port must be forwarded through any NAT/firewall:
+- Check that the server's UDP port (`9000` by default) is open in your firewall.
+- On Linux: `sudo ufw allow 9000/udp`
+- On macOS: System Settings → Network → Firewall → allow Python.
+- Confirm the server's actual IP with `ip addr` (Linux) or `ifconfig` (macOS).
+
 ## **4\. Video Demo**
 
 Our 2-minute video demonstration covering connection establishment, data exchange, real-time voice chat, and process termination can be viewed below:  
@@ -88,8 +96,12 @@ Our 2-minute video demonstration covering connection establishment, data exchang
 
 To run this project, you need:
 
-* **Python 3.10** or higher.  
+* **Python 3.10** or higher.
+* **PyAudio 0.2.14**
+* PortAudio (see install guide below)
+* Tkinter (standar library)
 * VS Code. 
+* All clients and the server must be on the same network, **or** the server's UDP port must be forwarded through any NAT/firewall.
 * requirements.txt file is included for environment completeness.  
 
 ### **Step 1 — Install PortAudio (system library for PyAudio)**
