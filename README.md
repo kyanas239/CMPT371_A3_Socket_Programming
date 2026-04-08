@@ -21,7 +21,7 @@ WalkiePy is a real-time push-to-talk (PTT) voice chat application built using Py
 
 The server handles client registration, audio relay, chat broadcast, and presence detection via heartbeats — ensuring that disconnected clients are automatically evicted without requiring any action from remaining participants.
 
-## **Additional:** 
+### **Additional:** 
 The Tkinter GUI includes a live user list, showing who is currently in the channel and a text chat panel for users to communicate in written messages, in addition to the voice chat.
 
 The project demonstrates core networking concepts:
@@ -35,39 +35,29 @@ The project demonstrates core networking concepts:
 
 As required by the project specifications, we have identified and handled (or defined) the following limitations and potential issues within our application scope:
 
-### No Audio Compression
-**Issue:** Raw 16-bit PCM at 16 kHz = ~32 KB/s per transmitting client. On
-a local LAN this is fine; it may be noticeable over the internet.  
-**Solution path:** Integrate an opus codec (e.g. `opuslib`) to compress
-audio ~10× with no perceptible quality loss.
+* **No Audio Compression**
+* **Limitation:** Raw 16-bit PCM at 16 kHz = ~32 KB/s per transmitting client. On a local LAN this is fine; it may be noticeable over the internet.  
+* **Solution:** Integrate an opus codec (e.g. `opuslib`) to compress audio ~10× with no perceptible quality loss.
 
-### Single Transmitter (Half-Duplex)
-**Issue:** Like a real walkie-talkie, only one person transmits at a time (the server relays whoever sends first). If two clients transmit simultaneously, the server just broadcasts whichever packets arrive; the result at the receiver will be garbled.
-**Solution path:** Server-side audio mixing; detect simultaneous transmitters and merge streams before rebroadcasting.
+* **No Encryption**
+* **Limitation:** Audio packets are sent as raw PCM over the network. Anyone on the same network with a packet sniffer (e.g. Wireshark) can capture and replay voice data.  
+* **Solution:** Wrap the socket in DTLS (Datagram TLS), or encrypt each payload with a shared AES key before sending.
 
-### No Encryption
-**Issue:** Audio packets are sent as raw PCM over the network. Anyone on the same network with a packet sniffer (e.g. Wireshark) can capture and replay voice data.  
-**Solution path:** Wrap the socket in DTLS (Datagram TLS), or encrypt each payload with a shared AES key before sending.
+* **Server is a Single Point of Failure**
+* **Limitation:** If the server crashes, all clients lose connectivity immediately.  
+* **Solution:** Add a reconnection loop in the client (exponential backoff), and consider a peer-to-peer fallback or a redundant server.
 
-### Server is a Single Point of Failure
-**Issue:** If the server crashes, all clients lose connectivity immediately.  
-**Solution path:** Add a reconnection loop in the client (exponential backoff), and consider a peer-to-peer fallback or a redundant server.
+* **Scalability**
+* **Limitation:** The server relays every audio packet to every other client. With N clients, each transmit causes N−1 sends. At large scale this becomes O(N) bandwidth per packet.  
+* **Solution:** Use IP multicast (UDP `setsockopt SO_IP_MULTICAST`) to let the network layer handle fan-out, reducing server send load to 1.
 
-### High-Latency / Packet-Loss Networks
-**Issue:** On congested networks, UDP packets can arrive out-of-order or be dropped frequently, causing choppy audio.  
-**Solution path:** Implement a jitter buffer in the client's playback path that reorders a small window of packets before rendering audio.
-
-### Scalability
-**Issue:** The server relays every audio packet to every other client. With N clients, each transmit causes N−1 sends. At large scale this becomes O(N) bandwidth per packet.  
-**Solution path:** Use IP multicast (UDP `setsockopt SO_IP_MULTICAST`) to let the network layer handle fan-out, reducing server send load to 1.
-
-### No Username Authentication
-**Issue:** Any client can register with any username, including impersonating another user.  
-**Solution path:** Implement a token/challenge handshake on registration, or a simple password for the channel.
+* **No Username Authentication**
+* **Limitation:** Any client can register with any username, including impersonating another user.  
+* **Solution:** Implement a token/challenge handshake on registration, or a simple password for the channel.
 
 ### Abrupt Client Disconnection
-**Issue:** If a client process is killed without sending `PKT_DISCONNECT`, the server won't know until the heartbeat timeout (8 seconds).  
-**Mitigation already in place:** The cleanup thread evicts clients after `HEARTBEAT_TIMEOUT` seconds of silence. This value is tunable in `server.py`.
+* **Limitation:** If a client process is killed without sending `PKT_DISCONNECT`, the server won't know until the heartbeat timeout (8 seconds).  
+* **Mitigation already in place:** The cleanup thread evicts clients after `HEARTBEAT_TIMEOUT` seconds of silence. This value is tunable in `server.py`.
 
 ## **3\. Video Demo**
 
