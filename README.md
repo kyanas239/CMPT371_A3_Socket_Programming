@@ -103,7 +103,7 @@ To run this project, you need:
 * All clients and the server must be on the same network, **or** the server's UDP port must be forwarded through any NAT/firewall.
 * requirements.txt file is included for environment completeness.  
 
-### **Step 1 — Install PortAudio (system library for PyAudio) & standard Tkinter library if not found**
+### **Step 1 — Install PortAudio (system library for PyAudio) & standard Tkinter library**
 
 **macOS**
 ```bash
