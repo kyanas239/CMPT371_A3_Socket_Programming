@@ -98,8 +98,8 @@ To run this project, you need:
 
 * **Python 3.10** or higher.
 * **PyAudio 0.2.14**
-* PortAudio (see install guide below)
-* Tkinter (standar library)
+* PortAudio (included in requirements.txt)
+* Tkinter (standard library)
 * VS Code. 
 * All clients and the server must be on the same network, **or** the server's UDP port must be forwarded through any NAT/firewall.
 * requirements.txt file is included for environment completeness.  
@@ -206,7 +206,7 @@ Release to stop transmitting. Other connected clients will hear you.
   * The socket boilerplate was adapted from the course tutorial and the YouTube tutorials listed below for both audio transmission and UDP protocol in Python.  
 * **GenAI Usage:**  
   * Claude was used to assist in generating the interface and front-end of the application based on our preferences of theme and functionality.  
-  * Claude was used to help in 'README.md' writing and polishing.
+  * Claude was used to help in 'README.md' writing and polishing, providing equivalent instructions for other operating systems.
   * Gemini was used to help plan the workflow of the application.
 * **References:**  
   * [Simple Voice Chat in Python](https://youtu.be/ikJZIT4H6Bc?si=0jAHnrHIJ0Lj3Uje)
