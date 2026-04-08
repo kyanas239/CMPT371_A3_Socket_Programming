@@ -21,6 +21,12 @@ WalkiePy is a real-time push-to-talk (PTT) voice chat application built using Py
 
 The server handles client registration, audio relay, chat broadcast, and presence detection via heartbeats — ensuring that disconnected clients are automatically evicted without requiring any action from remaining participants.
 
+### **Why UDP?** 
+UDP is ideal for fast, real-time audio streaming, requiring low latency so it allows the application to ignore lost packets rather than waiting for retransmission.
+A dropped packet would be a tiny crackle; but in TCP retransmission, the audio would freeze until the lost packet arrives.
+UDP has no handshake overhead.
+
+
 ### **Additional:** 
 The Tkinter GUI includes a live user list, showing who is currently in the channel and a text chat panel for users to communicate in written messages, in addition to the voice chat.
 
