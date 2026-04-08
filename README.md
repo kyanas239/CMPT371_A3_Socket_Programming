@@ -25,7 +25,7 @@
 4. [Video Demo](#4-video-demo)
 5. [Prerequisites (Fresh Environment)](#5-prerequisites-fresh-environment)
 6. [Running the Application](#6-running-the-application)
-7. [Academic Integrity & References](#7-academic-integrity--feferences)
+7. [Academic Integrity & References](#7-academic-integrity--references)
 
 ---
 
