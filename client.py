@@ -66,6 +66,7 @@ PKT_CHAT        = 0x04
 PKT_DISCONNECT  = 0x05
 PKT_CLIENT_LIST = 0x06
 PKT_TRANSMIT    = 0x07
+PKT_STOP_TX     = 0x08
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  Audio constants
@@ -171,6 +172,14 @@ class NetworkClient:
                 self.sock.sendto(packet, self.server_addr)
             except OSError as e:
                 log.warning(f"Audio send error: {e}")
+
+    def send_stop_transmit(self):
+        """Tell the server PTT has been released."""
+        if self.sock and self.running:
+            try:
+                self.sock.sendto(bytes([PKT_STOP_TX]), self.server_addr)
+            except OSError as e:
+                log.warning(f"Stop-TX send error: {e}")
 
     def send_chat(self, message: str):
         """Send a text chat message to the server."""
@@ -787,6 +796,9 @@ class WalkieTalkieApp(tk.Tk):
         )
         if self.audio_manager:
             self.audio_manager.push_to_talk(False)
+        if self.network_client:
+            self.network_client.send_stop_transmit()
+        
         log.debug("PTT OFF")
 
     def _bind_keys(self):
@@ -859,7 +871,7 @@ class WalkieTalkieApp(tk.Tk):
     def _on_transmit(self, username: str):
         """Show/hide the 'X is transmitting' indicator."""
         def _update():
-            if username == self.username:
+            if not username or username == self.username:
                 self._tx_indicator.config(text="")
             else:
                 self._tx_indicator.config(text=f"📻  {username}\ntransmitting…")

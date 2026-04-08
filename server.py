@@ -47,6 +47,7 @@ PKT_CHAT       = 0x04   # UTF-8 encoded text message
 PKT_DISCONNECT = 0x05   # Graceful client shutdown
 PKT_CLIENT_LIST= 0x06   # Server → client: current user list
 PKT_TRANSMIT   = 0x07   # Server → client: who is currently transmitting
+PKT_STOP_TX    = 0x08   # Client → server: PTT released
 
 # How many seconds of silence before a client is considered gone
 HEARTBEAT_TIMEOUT = 8   # seconds
@@ -143,6 +144,9 @@ class WalkieTalkieServer:
 
             elif pkt_type == PKT_AUDIO:
                 self._handle_audio(data[1:], addr)
+            
+            elif pkt_type == PKT_STOP_TX:
+                self._handle_stop_transmit(addr)
 
             elif pkt_type == PKT_CHAT:
                 self._handle_chat(data[1:], addr)
@@ -208,6 +212,12 @@ class WalkieTalkieServer:
                 self.sock.sendto(packet, addr)
             except OSError as e:
                 log.warning(f"Could not send audio to {addr}: {e}")
+
+    def _handle_stop_transmit(self, addr: tuple):
+        """Client released PTT — clear the floor and notify everyone."""
+        if self.current_transmitter == addr:
+            self.current_transmitter = None
+            self._broadcast_transmitter("")   # empty string = nobody transmitting
 
     def _handle_chat(self, payload: bytes, sender_addr: tuple):
         """
