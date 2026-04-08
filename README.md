@@ -15,15 +15,19 @@
 | Ramneet Bhangoo | 301565796 |  |
 | Kyana Sohangar | 301604899 | kyana_sohangar@sfu.ca |
 
+---
+
 ## Table of Contents
 
-1. [Project Description](#project-overview--description)
-2. [Why UDP?](#why-udp)
-3. [System Limitations & Edge Cases](#known-limitations--discussion)
-4. [Video Demo](#requirements)
-7. [Installation Guide (Fresh Environment)](#installation-guide-fresh-environment)
-8. [Running the Application](#running-the-application)
+1. [Project Description](#1-project-overview--description)
+2. [Why UDP?](#2-why-udp)
+3. [System Limitations & Edge Cases](#3-system-limitations--edge-cases)
+4. [Video Demo](#4-video-demo)
+5. [Prerequisites (Fresh Environment)](#5-prerequisites-fresh-environment)
+6. [Running the Application](#6-running-the-application)
+7. [Academic Integrity & References](#7-academic-integrity--feferences)
 
+---
 
 ## **1\. Project Overview & Description**
 
